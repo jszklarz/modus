@@ -1,0 +1,1 @@
+ALTER TABLE "channels" ADD CONSTRAINT "channels_unique_name_idx" UNIQUE("name");
