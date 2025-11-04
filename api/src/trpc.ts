@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { db } from './db';
 import { logger } from './common/logger';
 import type { Logger } from 'pino';
+import { getAuth } from '@clerk/express';
 
 /**
  * Context type for tRPC procedures
@@ -10,6 +11,13 @@ export type Context = {
   db: typeof db;
   logger: Logger;
   auth: any;
+};
+
+/**
+ * Protected context type with guaranteed auth
+ */
+export type ProtectedContext = Context & {
+  auth: ReturnType<typeof getAuth>;
 };
 
 /**
@@ -41,8 +49,9 @@ export const publicProcedure = t.procedure;
 
 /**
  * Protected procedure that requires authentication
+ * Ensures ctx.auth is not null and has userId
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = t.procedure.use(({ input, ctx, next }) => {
   if (!ctx.auth?.userId) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
@@ -50,10 +59,5 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
     });
   }
 
-  return next({
-    ctx: {
-      ...ctx,
-      auth: ctx.auth,
-    },
-  });
+  return next({ input, ctx });
 });

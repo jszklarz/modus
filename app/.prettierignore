@@ -1,0 +1,11 @@
+# Build outputs
+dist
+resources
+.tmp
+
+# Dependencies
+node_modules
+
+# Config files
+pnpm-lock.yaml
+package-lock.json

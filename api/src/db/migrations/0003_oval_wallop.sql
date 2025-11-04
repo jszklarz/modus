@@ -1,0 +1,1 @@
+ALTER TABLE "channels" ADD COLUMN "is_private" boolean DEFAULT false NOT NULL;

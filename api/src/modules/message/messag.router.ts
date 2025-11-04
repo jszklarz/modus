@@ -1,10 +1,9 @@
 import z from 'zod';
-import { publicProcedure } from '../../trpc';
-import { channelService } from '../channel/channel.service';
+import { protectedProcedure } from '../../trpc';
 import { messageService } from './message.service';
 
 export const messageRouter = {
-  getMessages: publicProcedure
+  getMessages: protectedProcedure
     .input(
       z.object({
         channelId: z.string(),
@@ -13,10 +12,9 @@ export const messageRouter = {
       })
     )
     .query(messageService.getMessagesByChannelId),
-  postMessage: publicProcedure
+  postMessage: protectedProcedure
     .input(
       z.object({
-        userId: z.string(),
         channelId: z.string(),
         content: z.string().min(1).max(1000),
       })

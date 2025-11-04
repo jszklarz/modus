@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, timestamp, index, check, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, index, check, unique, boolean } from 'drizzle-orm/pg-core';
 
 // Helper to generate xid - using require to avoid ESM/CJS issues with drizzle-kit
 const generateXid = () => {
@@ -12,6 +12,7 @@ export const channels = pgTable(
   {
     id: text('id').primaryKey().$defaultFn(generateXid),
     name: text('name').notNull(),
+    isPrivate: boolean('is_private').notNull().default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

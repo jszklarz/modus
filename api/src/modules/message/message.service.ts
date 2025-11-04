@@ -1,5 +1,6 @@
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { channelMembers, messages } from '../../db/schema';
+import { ProtectedContext } from '../../trpc';
 
 export const messageService = {
   // Fetches the messages from a channel based on the given cursor (messageId).
@@ -9,7 +10,7 @@ export const messageService = {
     ctx,
   }: {
     input: { channelId: string; latestMessageId?: string; limit?: number };
-    ctx: any;
+    ctx: ProtectedContext;
   }) => {
     const { channelId, latestMessageId, limit = 20 } = input;
 
@@ -59,15 +60,17 @@ export const messageService = {
     input,
     ctx,
   }: {
-    input: { channelId: string; content: string; userId: string };
-    ctx: any;
+    input: { channelId: string; content: string };
+    ctx: ProtectedContext;
   }) => {
+    const userId = ctx.auth.userId;
+
     // First confirm that the userId is a member of the channel.
     const member = await ctx.db
       .select()
       .from(channelMembers)
       .where(
-        and(eq(channelMembers.channelId, input.channelId), eq(channelMembers.userId, input.userId))
+        and(eq(channelMembers.channelId, input.channelId), eq(channelMembers.userId, userId))
       )
       .limit(1);
 
@@ -82,7 +85,7 @@ export const messageService = {
       .values({
         channelId: input.channelId,
         content: input.content,
-        userId: 'test-user-id',
+        userId: userId,
       })
       .returning();
   },

@@ -1,0 +1,111 @@
+import { useSelector } from "@xstate/store/react";
+import { useCallback, useEffect } from "react";
+import { default as ChannelPage } from "../channel-messages/ChannelPage";
+import { DashboardPage } from "../dashboard/DashboardPage";
+import { LeftSidebar } from "../sidebars/LeftSidebar";
+import { channelStore } from "../store/channel.store";
+import { layoutStore } from "../store/layout.store";
+
+export function LayoutContainer() {
+  const { selectedChannel } = useSelector(channelStore, (state) => state.context);
+  const layoutState = useSelector(layoutStore, (state) => state.context);
+  const { leftSidebarWidth, rightSidebarWidth, isResizingLeft, isResizingRight, isRightOpen } =
+    layoutState;
+
+  const handleLeftMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    layoutStore.send({ type: "startResizingLeft" });
+  }, []);
+
+  const handleRightMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    layoutStore.send({ type: "startResizingRight" });
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    layoutStore.send({ type: "stopResizing" });
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isResizingLeft || isResizingRight) {
+        e.preventDefault();
+      }
+
+      if (isResizingLeft) {
+        const newWidth = e.clientX;
+        layoutStore.send({ type: "setLeftSidebarWidth", width: newWidth });
+      }
+
+      if (isResizingRight) {
+        const newWidth = window.innerWidth - e.clientX;
+        layoutStore.send({ type: "setRightSidebarWidth", width: newWidth });
+      }
+    },
+    [isResizingLeft, isResizingRight]
+  );
+
+  // Add global mouse event listeners
+  useEffect(() => {
+    document.addEventListener("mousemove", handleMouseMove as any);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove as any);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  // Disable text selection globally when resizing
+  useEffect(() => {
+    if (isResizingLeft || isResizingRight) {
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+    } else {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    }
+  }, [isResizingLeft, isResizingRight]);
+
+  return (
+    <div
+      className="w-full h-full flex"
+      style={{ userSelect: isResizingLeft || isResizingRight ? "none" : "auto" }}
+    >
+      {/* Left sidebar container */}
+      <div
+        className="h-full bg-muted relative flex-shrink-0"
+        style={{ width: `${leftSidebarWidth}px` }}
+      >
+        <LeftSidebar className="w-full h-full" />
+        {/* Resize handle */}
+        <div
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary transition-colors"
+          onMouseDown={handleLeftMouseDown}
+        />
+      </div>
+
+      {/* Main section container */}
+      <div className="flex-1 h-full bg-card text-card-foreground flex items-center justify-center">
+        <div className="w-full h-full flex flex-col">
+          {selectedChannel ? <ChannelPage /> : <DashboardPage />}
+        </div>
+      </div>
+
+      {/* Right sidebar container */}
+      {isRightOpen && (
+        <div
+          className="h-full bg-zinc-800 relative flex-shrink-0"
+          style={{ width: `${rightSidebarWidth}px` }}
+        >
+          {/* Resize handle */}
+          <div
+            className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-blue-500 transition-colors"
+            onMouseDown={handleRightMouseDown}
+          />
+          <div className="w-full h-full p-4 text-white">Right Sidebar</div>
+        </div>
+      )}
+    </div>
+  );
+}

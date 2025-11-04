@@ -27,11 +27,13 @@ app.use(
   createExpressMiddleware({
     router: appRouter,
     createContext: ({ req }) => {
+      // Also see protectedProcedure in trpc.ts for auth enforcement
       const auth = getAuth(req);
+
       return {
         db,
         logger,
-        auth: auth.userId ? auth : null
+        auth: auth.userId ? auth : null,
       };
     },
   })

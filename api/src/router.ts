@@ -1,7 +1,6 @@
-import z from 'zod';
 import { channelRouter } from './modules/channel/channel.router';
 import { messageRouter } from './modules/message/messag.router';
-import { router, publicProcedure } from './trpc';
+import { router } from './trpc';
 
 /**
  * App Router - Define your API endpoints here

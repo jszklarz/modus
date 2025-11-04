@@ -1,5 +1,5 @@
-import { createTRPCReact } from '@trpc/react-query';
-import type { AppRouter } from '../../api/src/router';
+import { createTRPCReact } from "@trpc/react-query";
+import type { AppRouter } from "../../api/src/router";
 
 /**
  * Create a tRPC React client with full type safety
