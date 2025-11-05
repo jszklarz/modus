@@ -4,6 +4,15 @@ import { channelService } from './channel.service';
 
 export const channelRouter = {
   getChannels: protectedProcedure.query(channelService.getChannelsByUserId),
+
+  getMembers: protectedProcedure
+    .input(
+      z.object({
+        channelId: z.string().uuid(),
+      })
+    )
+    .query(channelService.getChannelMembers),
+
   searchChannels: protectedProcedure
     .input(
       z.object({
@@ -11,6 +20,7 @@ export const channelRouter = {
       })
     )
     .query(channelService.searchChannels),
+
   createChannel: protectedProcedure
     .input(
       z.object({

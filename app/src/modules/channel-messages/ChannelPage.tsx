@@ -1,14 +1,11 @@
-import { useSelector } from "@xstate/store/react";
-import { channelStore } from "../store/channel.store";
+import ChannelHeader from "./header/ChannelHeader";
 import MessageInput from "./input/MessageInput";
 
 export default function ChannelPage() {
-  const { selectedChannel } = useSelector(channelStore, (state) => state.context);
-
   return (
     <>
       {/* Header */}
-      <div className="w-full border-b border-zinc-600 py-1 px-2">${selectedChannel?.name}</div>
+      <ChannelHeader className="w-full border-b border-zinc-600 py-1 px-2 flex items center" />
 
       {/* Conversation */}
       <div className="grow py-1 px-2">The conversation is here</div>

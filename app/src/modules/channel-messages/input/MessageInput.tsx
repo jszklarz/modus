@@ -45,7 +45,7 @@ export default function MessageInput(props: HTMLAttributes<HTMLDivElement>) {
       const stream = await startAudioCapture();
       if (stream) {
         console.log("Stream acquired, setting isRecording to true");
-        inputStore.send({type: "setIsRecording", isRecording: true})
+        inputStore.send({type: "setIsRecording", isRecording: true});
         console.log("Recording started", stream);
       } else {
         console.error("Failed to start recording - no stream");
@@ -117,12 +117,6 @@ export default function MessageInput(props: HTMLAttributes<HTMLDivElement>) {
       <div className="relative w-5/6 max-w-[800px] h-full py-8">
         <div
           className={cn("h-full rounded-md p-4", inputState === "text" && "bg-neutral-900 border border-zinc-700")}
-          onClick={() => {
-            // Switch to text state when clicking on the input area in microphone mode
-            if (inputState === "microphone" && !isRecording) {
-              inputStore.send({type: "setInputState", inputState: "text"})
-            }
-          }}
         >
           {/* Microphone button - centered on input box, shown in microphone state */}
           {inputState === "microphone" && (

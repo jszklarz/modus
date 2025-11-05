@@ -1,4 +1,5 @@
 import { channelRouter } from './modules/channel/channel.router';
+import { dashboardRouter } from './modules/dashboard/dashboard.router';
 import { messageRouter } from './modules/message/messag.router';
 import { router } from './trpc';
 
@@ -8,6 +9,7 @@ import { router } from './trpc';
 export const appRouter = router({
   ...channelRouter,
   ...messageRouter,
+  ...dashboardRouter,
 });
 
 // Export type router type signature for the client

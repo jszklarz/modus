@@ -23,6 +23,33 @@ export const channelService = {
     ctx.logger.info({ userId, count: result.length }, 'Fetched channels for user');
     return result;
   },
+
+  getChannelMembers: async ({
+    input,
+    ctx,
+  }: {
+    input: { channelId: string };
+    ctx: ProtectedContext;
+  }) => {
+    const userId = ctx.auth.userId;
+    const channelId = input.channelId;
+    // Here's how this function should operate:
+    // 1. Verify that the user is in the same org as the channel.
+    // 2. Private channels should only be included if the user is a member of that channel. We should do this in a single join query.
+
+    ctx.logger.info({ userId, channelId }, 'Fetching channel members');
+
+    const result = await ctx.db
+      .select({
+        userId: channelMembers.userId,
+      })
+      .from(channelMembers)
+      .where(eq(channelMembers.channelId, channelId));
+
+    ctx.logger.info({ userId, channelId, count: result.length }, 'Fetched channel members');
+    return result.map(r => r.userId);
+  },
+
   searchChannels: async ({ input, ctx }: { input: { query: string }; ctx: ProtectedContext }) => {
     const userId = ctx.auth.userId;
     const query = input.query.toLowerCase();
@@ -45,6 +72,7 @@ export const channelService = {
     ctx.logger.info({ userId, query, count: result.length }, 'Searched channels');
     return result;
   },
+
   createChannel: async ({
     input,
     ctx,

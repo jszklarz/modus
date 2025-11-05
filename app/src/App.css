@@ -12,7 +12,7 @@
 @layer base {
   :root {
     /* Default theme (dark) */
-    --color-background: 10 10 10;
+    --color-background: 39 39 42;
     --color-foreground: 250 250 250;
     --color-primary: 139 92 246;
     --color-primary-foreground: 250 250 250;
@@ -63,5 +63,48 @@
   #root {
     width: 100vw;
     height: 100vh;
+  }
+
+  /* Custom scrollbar styles */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #52525b #27272a; /* thumb: zinc-600, track: zinc-800 */
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #27272a; /* zinc-800 */
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #52525b; /* zinc-600 */
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #71717a; /* zinc-500 */
+  }
+
+  /* Light mode scrollbar */
+  .light * {
+    scrollbar-color: #d4d4d8 #f4f4f5; /* thumb: zinc-300, track: zinc-100 */
+  }
+
+  .light *::-webkit-scrollbar-track {
+    background: #f4f4f5; /* zinc-100 */
+  }
+
+  .light *::-webkit-scrollbar-thumb {
+    background: #d4d4d8; /* zinc-300 */
+  }
+
+  .light *::-webkit-scrollbar-thumb:hover {
+    background: #a1a1aa; /* zinc-400 */
   }
 }

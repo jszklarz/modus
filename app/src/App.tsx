@@ -1,7 +1,7 @@
 import { ClerkProvider, SignedIn, SignedOut, SignIn, useAuth } from "@clerk/clerk-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LayoutContainer } from "./modules/layout/LayoutContainer";
 import { ThemeProvider } from "./modules/theme/ThemeProvider";
 import { trpc } from "./trpc";
@@ -51,6 +51,23 @@ function AppContent() {
 }
 
 function App() {
+  // Request microphone permission on app startup
+  useEffect(() => {
+    const requestMicrophoneAccess = async () => {
+      try {
+        console.log("Requesting microphone access on app startup...");
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Microphone access granted");
+        // Stop the stream immediately - we just wanted permission
+        stream.getTracks().forEach(track => track.stop());
+      } catch (error) {
+        console.error("Failed to get microphone access:", error);
+      }
+    };
+
+    requestMicrophoneAccess();
+  }, []);
+
   return (
     <ThemeProvider>
       <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
