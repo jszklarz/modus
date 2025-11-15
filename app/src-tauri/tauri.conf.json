@@ -43,7 +43,9 @@
       "capabilities": [
         {
           "identifier": "main-capability",
-          "windows": ["main"],
+          "windows": [
+            "main"
+          ],
           "permissions": [
             "core:window:allow-close",
             "core:window:allow-minimize",

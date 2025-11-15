@@ -6,6 +6,12 @@ let animationFrameId: number | null = null;
 let mediaRecorder: MediaRecorder | null = null;
 let audioChunks: Blob[] = [];
 let audioLevelCallback: ((level: number) => void) | null = null;
+let lowAudioCallback: ((isTooSoft: boolean) => void) | null = null;
+
+// Track audio levels over time to detect sustained low volume
+const AUDIO_LEVEL_HISTORY_SIZE = 30; // ~0.5 seconds at 60fps
+const LOW_AUDIO_THRESHOLD = 0.1; // Normalized level below which audio is considered too soft (10%)
+let audioLevelHistory: number[] = [];
 
 /**
  * Starts capturing audio from the microphone
@@ -95,6 +101,20 @@ function startAudioMonitoring(stream: MediaStream): void {
         audioLevelCallback(normalizedLevel);
       }
 
+      // Track audio history for low level detection
+      audioLevelHistory.push(normalizedLevel);
+      if (audioLevelHistory.length > AUDIO_LEVEL_HISTORY_SIZE) {
+        audioLevelHistory.shift();
+      }
+
+      // Check if audio has been consistently too low
+      if (audioLevelHistory.length >= AUDIO_LEVEL_HISTORY_SIZE && lowAudioCallback) {
+        const averageLevel = audioLevelHistory.reduce((acc, val) => acc + val, 0) / audioLevelHistory.length;
+        const isTooSoft = averageLevel < LOW_AUDIO_THRESHOLD;
+        console.log("Audio check:", { averageLevel, threshold: LOW_AUDIO_THRESHOLD, isTooSoft });
+        lowAudioCallback(isTooSoft);
+      }
+
       animationFrameId = requestAnimationFrame(monitorLevels);
     };
 
@@ -109,6 +129,13 @@ function startAudioMonitoring(stream: MediaStream): void {
  */
 export function setAudioLevelCallback(callback: (level: number) => void): void {
   audioLevelCallback = callback;
+}
+
+/**
+ * Sets a callback to receive low audio warnings
+ */
+export function setLowAudioCallback(callback: (isTooSoft: boolean) => void): void {
+  lowAudioCallback = callback;
 }
 
 /**
@@ -216,6 +243,8 @@ export function stopAudioCapture(): void {
 
   analyser = null;
   audioLevelCallback = null;
+  lowAudioCallback = null;
+  audioLevelHistory = [];
 
   // Stop all tracks
   if (activeMediaStream) {

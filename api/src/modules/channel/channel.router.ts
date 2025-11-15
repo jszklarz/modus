@@ -1,33 +1,28 @@
-import { z } from 'zod';
 import { protectedProcedure } from '../../trpc';
+import {
+  CreateChannelInputSchema,
+  DeleteChannelInputSchema,
+  LeaveChannelInputSchema,
+  SearchChannelsInputSchema,
+} from './channel.router.types';
 import { channelService } from './channel.service';
 
 export const channelRouter = {
   getChannels: protectedProcedure.query(channelService.getChannelsByUserId),
 
-  getMembers: protectedProcedure
-    .input(
-      z.object({
-        channelId: z.string().uuid(),
-      })
-    )
-    .query(channelService.getChannelMembers),
-
   searchChannels: protectedProcedure
-    .input(
-      z.object({
-        query: z.string().min(1).max(32),
-      })
-    )
+    .input(SearchChannelsInputSchema)
     .query(channelService.searchChannels),
 
   createChannel: protectedProcedure
-    .input(
-      z.object({
-        name: z.string().min(1).max(32),
-        isPrivate: z.boolean(),
-        memberIds: z.array(z.string()).optional(),
-      })
-    )
+    .input(CreateChannelInputSchema)
     .mutation(channelService.createChannel),
+
+  leaveChannel: protectedProcedure
+    .input(LeaveChannelInputSchema)
+    .mutation(channelService.leaveChannel),
+
+  deleteChannel: protectedProcedure
+    .input(DeleteChannelInputSchema)
+    .mutation(channelService.deleteChannel),
 };

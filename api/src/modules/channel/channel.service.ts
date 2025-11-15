@@ -1,6 +1,13 @@
 import { eq, and, ilike, or } from 'drizzle-orm';
 import { channelMembers, channels } from '../../db/schema';
 import { ProtectedContext } from '../../trpc';
+import {
+  CreateChannelInput,
+  DeleteChannelInput,
+  LeaveChannelInput,
+  SearchChannelsInput,
+} from './channel.router.types';
+import { ProtectedInput } from '../types/types';
 
 export const channelService = {
   getChannelsByUserId: async ({ ctx }: { ctx: ProtectedContext }) => {
@@ -24,33 +31,7 @@ export const channelService = {
     return result;
   },
 
-  getChannelMembers: async ({
-    input,
-    ctx,
-  }: {
-    input: { channelId: string };
-    ctx: ProtectedContext;
-  }) => {
-    const userId = ctx.auth.userId;
-    const channelId = input.channelId;
-    // Here's how this function should operate:
-    // 1. Verify that the user is in the same org as the channel.
-    // 2. Private channels should only be included if the user is a member of that channel. We should do this in a single join query.
-
-    ctx.logger.info({ userId, channelId }, 'Fetching channel members');
-
-    const result = await ctx.db
-      .select({
-        userId: channelMembers.userId,
-      })
-      .from(channelMembers)
-      .where(eq(channelMembers.channelId, channelId));
-
-    ctx.logger.info({ userId, channelId, count: result.length }, 'Fetched channel members');
-    return result.map(r => r.userId);
-  },
-
-  searchChannels: async ({ input, ctx }: { input: { query: string }; ctx: ProtectedContext }) => {
+  searchChannels: async ({ input, ctx }: ProtectedInput<SearchChannelsInput>) => {
     const userId = ctx.auth.userId;
     const query = input.query.toLowerCase();
 
@@ -73,13 +54,7 @@ export const channelService = {
     return result;
   },
 
-  createChannel: async ({
-    input,
-    ctx,
-  }: {
-    input: { name: string; isPrivate: boolean; memberIds?: string[] };
-    ctx: ProtectedContext;
-  }) => {
+  createChannel: async ({ input, ctx }: ProtectedInput<CreateChannelInput>) => {
     const userId = ctx.auth.userId;
     const memberIds = input.memberIds || [];
 
@@ -97,6 +72,8 @@ export const channelService = {
           .values({
             name: input.name,
             isPrivate: input.isPrivate,
+            orgId: ctx.auth.orgId,
+            ownerId: userId,
           })
           .returning();
 
@@ -116,5 +93,47 @@ export const channelService = {
       ctx.logger.error({ error, name: input.name }, 'Failed to create channel');
       throw error;
     }
+  },
+
+  leaveChannel: async ({ input, ctx }: ProtectedInput<LeaveChannelInput>) => {
+    const userId = ctx.auth.userId;
+    const channelId = input.channelId;
+
+    ctx.logger.info({ userId, channelId }, 'User leaving channel');
+
+    const deleteResult = await ctx.db
+      .delete(channelMembers)
+      .where(and(eq(channelMembers.channelId, channelId), eq(channelMembers.userId, userId)));
+
+    ctx.logger.info({ userId, channelId }, 'User left channel successfully');
+
+    return deleteResult;
+  },
+
+  deleteChannel: async ({ input, ctx }: ProtectedInput<DeleteChannelInput>) => {
+    const userId = ctx.auth.userId;
+    const channelId = input.channelId;
+
+    ctx.logger.info({ userId, channelId }, 'Attempting to delete channel');
+
+    // Verify the user is the owner of the channel
+    const channel = await ctx.db.select().from(channels).where(eq(channels.id, channelId)).limit(1);
+
+    if (channel.length === 0) {
+      ctx.logger.error({ channelId }, 'Channel not found');
+      throw new Error('Channel not found');
+    }
+
+    if (channel[0].ownerId !== userId) {
+      ctx.logger.error({ userId, channelId, ownerId: channel[0].ownerId }, 'User is not the owner');
+      throw new Error('Only the channel owner can delete the channel');
+    }
+
+    // Delete the channel (cascade will handle channel_members and messages)
+    const deleteResult = await ctx.db.delete(channels).where(eq(channels.id, channelId));
+
+    ctx.logger.info({ userId, channelId }, 'Channel deleted successfully');
+
+    return deleteResult;
   },
 };

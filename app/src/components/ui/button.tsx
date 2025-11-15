@@ -21,6 +21,7 @@ const buttonVariants = cva(
           "bg-destructive hover:bg-destructive/80 dark:bg-destructive/80 text-destructive-foreground dark:hover:bg-destructive/60 dark:focus-visible:ring-destructive/40 focus-visible:ring-destructive/50 shadow-xs",
       },
       size: {
+        xs: "h-5 px-2 py-1",
         sm: "h-8 px-3 gap-1",
         md: "h-9 px-4",
         lg: "h-10 px-5",

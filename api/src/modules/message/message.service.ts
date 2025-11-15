@@ -1,6 +1,8 @@
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { channelMembers, messages } from '../../db/schema';
 import { ProtectedContext } from '../../trpc';
+import { messageEmitter } from '../../common/events';
+import { clerkClient } from '../../common/clerk';
 
 export const messageService = {
   // Fetches the messages from a channel based on the given cursor (messageId).
@@ -16,9 +18,11 @@ export const messageService = {
 
     ctx.logger.info({ channelId, latestMessageId, limit }, 'Fetching messages');
 
+    let result;
+
     // First page - no cursor
     if (!latestMessageId) {
-      const result = await ctx.db
+      result = await ctx.db
         .select()
         .from(messages)
         .where(eq(messages.channelId, channelId))
@@ -26,33 +30,67 @@ export const messageService = {
         .limit(limit);
 
       ctx.logger.info({ count: result.length }, 'Fetched messages (first page)');
-      return result;
+    } else {
+      // If we have a cursor, fetch the timestamp of that message first
+      const cursorMessage = await ctx.db
+        .select({ createdAt: messages.createdAt })
+        .from(messages)
+        .where(eq(messages.id, latestMessageId))
+        .limit(1);
+
+      if (!cursorMessage.length) {
+        ctx.logger.error({ latestMessageId }, 'Invalid cursor: message not found');
+        throw new Error('Invalid latestMessageId cursor');
+      }
+
+      // Fetch messages older than the cursor message
+      result = await ctx.db
+        .select()
+        .from(messages)
+        .where(
+          and(eq(messages.channelId, channelId), lt(messages.createdAt, cursorMessage[0].createdAt))
+        )
+        .orderBy(desc(messages.createdAt))
+        .limit(limit);
+
+      ctx.logger.info({ count: result.length }, 'Fetched messages (paginated)');
     }
 
-    // If we have a cursor, fetch the timestamp of that message first
-    const cursorMessage = await ctx.db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, latestMessageId))
-      .limit(1);
+    // Enrich messages with user data from Clerk
+    const enrichedMessages = await Promise.all(
+      result.map(async (message) => {
+        try {
+          const user = await clerkClient.users.getUser(message.userId);
+          const userEmail = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
 
-    if (!cursorMessage.length) {
-      ctx.logger.error({ latestMessageId }, 'Invalid cursor: message not found');
-      throw new Error('Invalid latestMessageId cursor');
-    }
+          return {
+            ...message,
+            user: {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              imageUrl: user.imageUrl,
+              emailAddress: userEmail?.emailAddress || '',
+            },
+          };
+        } catch (error) {
+          ctx.logger.error({ error, userId: message.userId }, 'Failed to fetch user data from Clerk');
+          // Return message with placeholder user data
+          return {
+            ...message,
+            user: {
+              id: message.userId,
+              firstName: null,
+              lastName: null,
+              imageUrl: '',
+              emailAddress: 'unknown@example.com',
+            },
+          };
+        }
+      })
+    );
 
-    // Fetch messages older than the cursor message
-    const result = await ctx.db
-      .select()
-      .from(messages)
-      .where(
-        and(eq(messages.channelId, channelId), lt(messages.createdAt, cursorMessage[0].createdAt))
-      )
-      .orderBy(desc(messages.createdAt))
-      .limit(limit);
-
-    ctx.logger.info({ count: result.length }, 'Fetched messages (paginated)');
-    return result;
+    return enrichedMessages;
   },
 
   // Posts a new message to the given channel
@@ -80,7 +118,7 @@ export const messageService = {
     }
 
     // Insert the message
-    return ctx.db
+    const result = await ctx.db
       .insert(messages)
       .values({
         channelId: input.channelId,
@@ -88,5 +126,36 @@ export const messageService = {
         userId: userId,
       })
       .returning();
+
+    // Emit event for real-time updates
+    if (result.length > 0) {
+      const newMessage = result[0];
+
+      // Fetch user data from Clerk
+      try {
+        const user = await clerkClient.users.getUser(userId);
+        const userEmail = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
+
+        // Emit message with user data
+        messageEmitter.emit('messageAdded', {
+          ...newMessage,
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            imageUrl: user.imageUrl,
+            emailAddress: userEmail?.emailAddress || '',
+          },
+        });
+
+        ctx.logger.info({ messageId: newMessage.id, channelId: newMessage.channelId }, 'Message created and event emitted with user data');
+      } catch (error) {
+        ctx.logger.error({ error, userId }, 'Failed to fetch user data from Clerk');
+        // Still emit the message without user data as fallback
+        messageEmitter.emit('messageAdded', newMessage as any);
+      }
+    }
+
+    return result;
   },
 };

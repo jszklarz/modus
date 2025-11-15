@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1761891174755,
-      "tag": "0000_tricky_skin",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761892038925,
-      "tag": "0001_stiff_franklin_richards",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1761922675949,
-      "tag": "0002_breezy_madame_hydra",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1761953506752,
-      "tag": "0003_oval_wallop",
+      "when": 1762992596104,
+      "tag": "0000_easy_sister_grimm",
       "breakpoints": true
     }
   ]

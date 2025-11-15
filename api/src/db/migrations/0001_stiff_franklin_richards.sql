@@ -1,1 +1,0 @@
-ALTER TABLE "channels" ADD CONSTRAINT "name_lowercase_check" CHECK ("channels"."name" = LOWER("channels"."name"));

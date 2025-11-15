@@ -6,6 +6,7 @@ export const inputStore = createStore({
     transcription: "",
     isTranscribing: false,
     inputState: "microphone" as "text" | "microphone",
+    isAudioTooSoft: false,
   },
   on: {
     setIsRecording: (context, event: { isRecording: boolean }) => ({
@@ -23,6 +24,10 @@ export const inputStore = createStore({
     setInputState: (context, event: { inputState: "text" | "microphone" }) => ({
       ...context,
       inputState: event.inputState,
+    }),
+    setIsAudioTooSoft: (context, event: { isAudioTooSoft: boolean }) => ({
+      ...context,
+      isAudioTooSoft: event.isAudioTooSoft,
     }),
   },
 });
